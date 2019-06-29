@@ -1,0 +1,295 @@
+The InstrumentService is used to retrieve information related to a specific instrument or collection of instruments. The InstrumentService is returned by calling instruments(), which is a method in AbstractJob, which is the abstract base class that all Freeway Jobs extend.
+
+Here is a list of method signatures for the InstrumentService:
+
+public interface IInstrumentService {
+ 
+        Prices getMarketPrices(String instrumentId);
+ 
+        Prices getAllPrices(String instrumentId);
+ 
+        Book getBook(String instrumentId);
+ 
+        boolean matches(String expression,String instrumentId);
+ 
+        String getInstrumentId(String expression);
+ 
+        Collection<String> getInstrumentIds(String expression);
+ 
+        void requestSnapshot();
+ 
+        InstrumentDetails getInstrumentDetails(String instrumentId);
+}
+The Price model is an immutable struct that has the following fields:
+
+public final double bid;
+    public final double ask;
+    public final int bid_size;
+    public final int ask_size;
+    public final double last;
+    public final int last_size;
+    public final double theo_bid;
+    public final double theo_ask;
+    public final double underlying_bid;
+    public final double underlying_ask;
+    public final double underlying_bid_size;
+    public final double underlying_ask_size;
+The Book model is an immutable struct that has the following fields:
+
+public final BookEntry[] bid;
+    public final BookEntry[] ask;
+ 
+    // With the BookEntry looking like:
+    public static final class BookEntry {
+        public double price;
+        public int quantity;
+    }
+As an example, this code will take a message from onMarketBidAsk(), fetch the inside bid and ask, and bind them to local variables:
+
+public void onMarketBidAsk(MarketBidAskMessage m) {
+    Prices prices=instruments().getMarketPrices(m.instrumentId);
+    double ask=prices.ask;
+    double bid=prices.bid;
+    log("Bid: " + bid);
+    log("Ask: " + ask);
+}
+Order Service
+The OrderService provides operations to work with Orders. A job can submit or modify orders, as well as look up additional details provided they have an associated Order identifier. The submission of an order requires that a job formulate an OrderRequest. The OrderRequest is a publicly constructable descriptor object which is provides the underlying Order engine all the details it needs to execute it.
+
+The OrderService is returned by calling the orders() method.
+
+Here is a list of method signatures for the OrderService:
+
+public interface IOrderService {
+ 
+    long submit(OrderRequest request);
+ 
+    boolean modify(long orderId,int quantity,double price);
+ 
+    void cancel(long orderId);
+ 
+    boolean isMyOrder(long orderId);
+ 
+    Order getOrder(long orderId);
+ 
+    int getActiveOrderCount();
+}
+The Order model is an immutable struct that has the following fields:
+
+public final double bid;
+    public final long orderId;
+    public final Status status;
+    public final Side side;
+    public final Type type;
+    public final String instrumentId;
+    public final int orderQuantity;
+    public final double orderPrice;
+    public final int filledQuantity;
+    public final double filledPrice;
+ 
+    // With the Status enum looking like:
+    public static enum Status {
+        NEW, BOOKED, FILLED, PARTIAL, CANCELLED, PULLED, EXPIRED, REJECTED;
+    }
+Here is an example that sends a buy order for 50 contracts for a price of 100 and a sell order for 50 at 101:
+
+long buyOrderId = orders().submit(OrderRequest.buy(instId, 50, 100));
+long sellOrderId = orders().submit(OrderRequest.sell(instId, 50, 101));
+ 
+
+Position Service
+The PositionService exposes operations related to both current positions and the risk on those positions. The collections returned by this service are snapshots and are not expected to be synchronized with market changes. Specifically, the user should not expect the data to change once this operation is called. You will notice that risk and position standings can be fetched by a trader identifier as well. This can be used very effectively when try trying to write jobs that hedge or display metrics on a per-trader basis.
+
+The position service is returned by calling the positions() method.
+
+Here is a list of method signatures for the PositionService:
+
+public interface IPositionService {
+ 
+   PositionRisk getPositionRisk();
+ 
+   PositionRisk getPositionRisk(String tradeAccount);
+ 
+   PositionRisk getInstrumentRisk(String instrumentId);
+ 
+   Collection<Position> getPositions();
+ 
+   Collection<Position> getPositions(String tradeAccount);
+}
+The Position model is an immutable struct that has the following fields:
+
+public final String instrumentId;
+    public final int dayTrade;
+    public final int committed;
+The PositionRisk model is an immutable struct that has the following fields:
+
+public final double dayTradeProfitAndLoss;
+    public final double committedProfitAndLoss;
+    public final double delta;
+    public final double gamma;
+    public final double vega;
+    public final double theta;
+    public final long dayTradePosition;
+    public final long committedPosition;
+This example fetches PNL, position, and option greeks for a position in instId:
+
+PositionRisk instRisk=positions().getInstrumentRisk(instId);
+pnl=instRisk.dayTradeProfitAndLoss;
+position=instRisk.dayTradePosition;
+vega=instRisk.vega;
+theta=instRisk.theta;
+delta=instRisk.delta; 
+gamma=instRisk.gamma;
+ 
+
+Quote Service
+The QuoteService provides operations related to controlling the settings and lifecycle of market quoting as well as RFQ events. It should be assumed that quote settings changes are instantaneous. The setter method for quote settings requires a QuoteSettings object, which is a publically constructable descriptor Object. A user can also fetch the current QuoteSettings descriptor, modify the fields, and the pass that back to the setter if it is more convenient. The expression argument required by some of the lifecycle methods is the same instrument expression format discussed in the InstrumentService section.
+
+The Quote Service is returned by calling the quotes() method.
+
+Here is a list of method signatures for the QuoteService:
+
+public interface IQuoteService {
+ 
+   QuoteSettings getQuoteSettings(String instrumentId);
+ 
+   void setQuoteSettings(String instrumentId,QuoteSettings settings);
+ 
+   void startQuoting(String expression);
+ 
+   void stopQuoting(String expression);
+ 
+   void stopAllQuotes();
+ 
+   void respondToRFQ(String instrumentId,int timeout);
+ 
+   void setTickLevel(String instrumentId,int level);
+ 
+   void submit(instrumentId, bidQuantity, bidPrice, askQuantity, askPrice)
+ 
+}
+The QuoteSettings model is a mutable struct that has the following fields:
+
+public int bid_size;
+    public int ask_size;
+    public double bid_size_multiplier;
+    public double ask_size_multiplier;
+    public double ask_edge;
+    public double bid_edge;
+    public double underlying_book_delta_multiplier;
+The following example will set up and start quoting Dec 2013 ES futures:
+
+//Set the quoting parameters for a specific future
+quotes().setQuoteSettings("ES-20131220-F",QuoteSettings(5,5,1,1,.25,.25,1));
+ 
+//Start quoting all instruments that match the matching expression. In this case, all ES futures
+quotes().startQuoting("ES;F;;;;;");
+ 
+
+Theoretical Service
+The TheoService provides operations that can be used to both query theoretical values and override or set a user's own values. This service can also be used to set a VolatiliyCurve model that will be used to calculate values and edge. All of the theoretical values are returned in the form of a Greeks model and these values can be queried specific to the current price, as well as the bid or ask sides specifically. The VolatilityCurve model is a public descriptor Object that has mutable fields for configuration.
+
+Here is a list of method signatures for the TheoService:
+
+public interface ITheoService {
+ 
+    Greeks getGreeks(String instrumentId);
+ 
+    Greeks getBidGreeks(String instrumentId);
+ 
+    Greeks getAskGreeks(String instrumentId);
+ 
+    void setTheo(String instrumentId,double price,double theo,double delta);
+ 
+    void setLean(String instrumentId,double lean);
+ 
+    void setUnderlyingOffset(String instrumentId,double offset);
+ 
+    void setModelParameters(String instrumentId,double interestRate,double carryCost);
+ 
+    void setVolatility(String instrumentId,double volatility);
+ 
+    void setVolatilityCurve(String instrumentMonth, VolatilityCurve curve);
+ 
+    void setVolatilitySlide(String instrumentMonth, VolatilityCurve.VolatilitySlide slide);
+}
+The Greeks model is an immutable struct that has the following fields:
+
+public final double theo;
+    public final double delta;
+    public final double gamma;
+    public final double vega;
+    public final double theta;
+    public final double epsilon;
+    public final double zeta;
+    public final double rho;
+    public final double rho2;
+    public final double volatility;
+    public final double volga;
+    public final double numberOfTradingDays;
+Trade Service
+The Trade Service provides operations on query additional Trade data. If a user has a related Trade identifier, they are able to query a Trade model that has additional details.
+
+Here is a list of method signatures for the TradeService:
+
+public interface ITradeService {
+ 
+    Trade getTrade(long tradeId);
+ 
+}
+The Trade model is an immutable struct that has the following fields:
+
+public final long tradeId;
+    public final String instrumentId;
+    public final Order.Side side;
+    public final int quantity;
+    public final double price;
+    public final double delta;
+    public final double theo;
+    public final Date executed;
+    public final long orderQuoteId;
+    public final String exchange;
+    public final String trader;
+    public final String tradeAccount;
+    public final String source;
+    public final String contraParty;
+ 
+    // With the Order.Side enum looking like:
+    public static enum Side {
+        BUY, SELL;
+    }
+Playback Service
+The PlaybackService is an additional service that was added to give users the ability to record and playback market data. The MarketdataRecorder job that is provided with a Freeway distribution makes use of this service to actively record and filtered instruments to a specified file. The Freeway console then has a UI widget that can be used to select any of the recording files for playback, as well as control playback speed, pause execution, resume execution, etc.
+
+Here is a list of method signatures for the PlaybackService:
+
+public interface IPlaybackService {
+ 
+   long getEffectiveTime();   //Returns effective simulator time in milliseconds
+ 
+   boolean isPlayingBack();   
+ 
+   void record(String filename,String exp);  //Starts recording market data from instruments that match exp to filename
+ 
+   void stop(String filename);  //Stops market data recording 
+ 
+   void playback(String filename); //Starts playback from filename
+ 
+}
+ 
+
+Jobs Service
+The Jobs Service provides methods that allow jobs to query, start and stop other jobs. 
+
+public Interface IJobService{
+ 
+    Set<String> getAllJobs(); //Get a Set of JobIds of all jobs currently loaded
+            
+    Set<String> getRunningJobs(); //Get a Set of JobIds of all the jobs currently running
+ 
+    boolean isJobRunning(String jobId); //Determine if a job is running. JobIds are string that look like MyTradingJob.1
+ 
+    void startJob(String jobId); //Start a job instance
+           
+    void stopJob(String jobId);  //Stop a job instance.
+}

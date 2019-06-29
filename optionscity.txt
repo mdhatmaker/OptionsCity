@@ -1,0 +1,35 @@
+From: Dylan Klausing <dklausing@optionscity.com>
+Subject: Freeway Limited Dev Lane
+Date: July 1, 2014 at 8:45:50 AM PDT
+To: mark@mnafinancial.com, Loren Reinhardt <lreinhardt@optionscity.com>
+
+Hi Mark
+We've just finished setting up your Freeway development server (also called your Freeway Lane).
+  
+You can access it at:
+http://64.74.102.102:10500/optionscity/optionscity/
+ 
+Pre-loaded on the server is market data for OZS, ZS futures and options. These are designed to get you started learning the system and building your algos. As you get more familiar with the system and your algos, we can add a few additional products if needed; however, since these are shared instances, the goal is to keep the install fairly lightweight.
+ 
+ 
+Here's your login:
+Username: MN10
+Pass: NASHED
+ 
+ 
+We suggest using Firefox or Internet Explorer to open the launch link -- Chrome has a known bug when dealing with Java Web Start files (it doesn't launch them automatically).
+To get up and running, check out our documentation that you can access from the 'Documentation' link in the upper right corner of the AlgoStore. We suggest starting by skimming the User Guide, which will give you an overview of the OnRamp interface and managing your running jobs. From there, move to the Developers Guide, which will walk you through installing the Eclipse plugin and writing your first job.
+If you have any questions, please contact OptionsCity Support at +1 312.635.2710.
+ 
+ 
+Sincerely,
+ 
+ 
+--
+Dylan Klausing
+Implementation Specialist
+ 
+OptionsCity Software, Inc.
+200 W. Adams St., Suite 1010
+Chicago, IL 60606
+O. +1 (312) 605-4543 | F. +1 (312) 635-1751  

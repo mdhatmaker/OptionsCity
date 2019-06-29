@@ -1,0 +1,5 @@
+		freeway code sample
+		
+		riskGrid = container.addGrid("Risk", new String[] {"Delta", "Gamma", "Theta", "Vega", "Downside", "ATM", "Upside", "DayTradeProfitLoss", "ProfitLoss", "OptionsDelta", "FuturesDelta", "ExpirationDate"});
+		riskGrid.clear();
+		log("To use, create a grid named \"Risk\" with columns \"Delta\", \"Gamma\", \"Theta\", \"Vega\", \"Downside\", \"ATM\", \"Upside\", \"DayTradeProfitLoss\", \"ProfitLoss\", \"OptionsDelta\", \"FuturesDelta\", and \"ExpirationDate\"");
